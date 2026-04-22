@@ -244,8 +244,8 @@ vm.runInContext(v2src, sb);
   const stillDead = dead.filter(k => k in cfg.translationServices);
   t('0 dead services remain in registry', () => assert.deepStrictEqual(stillDead, []));
   t('default translationService is bing', () => assert.strictEqual(cfg.translationService, 'bing'));
-  t('BYOK services still present: openai/gemini/claude/deepseek/openrouter/ollama/zhipu/custom-ai', () => {
-    ['openai','gemini','claude','deepseek','openrouter','ollama','zhipu','custom'].forEach(k => {
+  t('BYOK services still present: openai-custom/claude-custom/deepseek/openrouter/ollama/zhipu/custom-ai', () => {
+    ['openai-custom','claude-custom','deepseek','openrouter','ollama','zhipu','custom-ai','custom'].forEach(k => {
       assert.ok(k in cfg.translationServices, `missing BYOK: ${k}`);
     });
   });
@@ -277,19 +277,39 @@ vm.runInContext(v2src, sb);
   t('manifest has no "key" (re-signed on load)', () => assert.ok(!('key' in mf)));
   t('manifest still has name', () => assert.ok(mf.name));
 
-  section('12. options.js UI gate removals (Turn 9)');
+  section('12. options.js UI gate removals (Turn 9 baseline + Turn 10 adjustments)');
   {
     const opt = fs.readFileSync(path.join(__dirname, '..', 'patched', 'options.js'), 'utf8');
-    // 1. compliance popup wL stubbed
-    t('wL compliance stub present', () => assert.ok(opt.includes('function wL(e){var _r=e&&e.onConfirm;if(e&&e.visible')));
+    t('wL stub async (setTimeout)', () => assert.ok(opt.includes('function wL(e){try{var _r=e&&e.onConfirm;if(e&&e.visible&&typeof _r==="function")setTimeout')));
     t('wL original consent body gone (services.consent.requiredText removed)', () => assert.ok(!opt.includes('services.consent.requiredText')));
-    // 2. ytAIAsr gate rewritten
     t('ytAIAsr wrapper hidden:!1 applied', () => assert.ok(opt.includes('hidden:!1,children:[u(Ee,{title:r("subtitle.ytAIAsr")')));
     t('ytAIAsr original Zt(t,e.isPro) gate removed', () => assert.ok(!opt.includes('hidden:Zt(t,e.isPro),children:[u(Ee,{title:r("subtitle.ytAIAsr")')));
     t('ytAIAsr disabled gate stripped of !e.isPro', () => assert.ok(opt.includes('disableTipText:r("subtitle.ytAsrDisableTooltip"),disabled:!t.generalRule.subtitleRule.preTranslation,onChange:')));
-    // 3. BX add-custom-service filter: no more ny() gate
-    t('BX new filter (without ny gate) present', () => assert.ok(opt.includes('.filter(s=>!(!Dn[s].allProps?.length||["zhipu-pro","qwen"].includes(s)))')));
-    t('BX old ny({serviceKey:s,ctx:e.ctx}) filter removed', () => assert.ok(!opt.includes('ny({serviceKey:s,ctx:e.ctx})')));
+    t('BX filter (turn-10: custom-ai whitelisted + ny gate)', () => assert.ok(opt.includes('.filter(s=>s==="custom-ai"||(!Dn[s].allProps?.length||["zhipu-pro","qwen"].includes(s)?!1:ny({serviceKey:s,ctx:e.ctx})))')));
+    t('BX turn-9 bypass removed', () => assert.ok(!opt.includes('.filter(s=>!(!Dn[s].allProps?.length||["zhipu-pro","qwen"].includes(s)))')));
+  }
+
+  section('13. Turn-10 fixes (paid-tier scrub, nav hide, assistant seed, preTranslation, click-crash)');
+  {
+    const opt = fs.readFileSync(path.join(__dirname, '..', 'patched', 'options.js'), 'utf8');
+    const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'patched', 'default_config.json'),'utf8'));
+    const deadTier = ['bing-free','google-free','siliconcloud-free','hymt-free','stepfun-free','transmart-free','yandex-free','openai-pro','claude-pro','deepseek-pro','hunyuan-pro','gemini-pro','qwen-mt-pro','qwen-pro','grok-pro','deepl-pro','openai-max','claude-max','gemini-max','qwen-max','kimi-max','zhipu-max','gemini','openai'];
+    const leftover = deadTier.filter(k => k in (cfg.translationServices||{}));
+    t('#1 no pro/free/max tier services in default_config.json', () => assert.strictEqual(leftover.length, 0, 'leftover: '+leftover.join(',')));
+    t('#1 zhipu-pro stripped from options.js Dn registry', () => assert.ok(!opt.includes('"zhipu-pro":{')));
+    t('#3 about footer nav removed', () => assert.ok(!opt.includes(',{name:a("about"),props:{href:"#about"')));
+    t('#4 sidemenu tutorial entry removed', () => assert.ok(!opt.includes('tutorial:{label:c("sideMenu.tutorial")')));
+    t('#4 tutorial removed from sae whitelist', () => assert.ok(opt.includes('var sae=["text","file","video","image"]') && !opt.includes('"text","file","video","image","tutorial"')));
+    t('#5 wL async setTimeout guard in place', () => assert.ok(opt.includes('setTimeout(function(){try{_r()}catch(_){}}, 0)')));
+    t('#5 ny() custom-ai short-circuit', () => assert.ok(opt.includes('if(t==="custom-ai")return!0;')));
+    t('#5 alpha/beta/canary enabled in default_config', () => assert.ok(cfg.alpha === true && cfg.beta === true && cfg.canary === true));
+    t('#6 generalRule.subtitleRule.preTranslation=true', () => assert.strictEqual(cfg.generalRule.subtitleRule.preTranslation, true));
+    t('#6 generalRule.subtitleRule.ytAIAsr=true', () => assert.strictEqual(cfg.generalRule.subtitleRule.ytAIAsr, true));
+    t('#6 generalRule.subtitleRule.aiSmartSentence=true', () => assert.strictEqual(cfg.generalRule.subtitleRule.aiSmartSentence, true));
+    t('#7 default_config.aiAssistants non-empty', () => assert.ok(Array.isArray(cfg.aiAssistants) && cfg.aiAssistants.length >= 1));
+    t('#7 general assistant present', () => assert.ok((cfg.aiAssistants||[]).some(a => a.id === 'general')));
+    t('#7 enableAiAssistant=true', () => assert.strictEqual(cfg.enableAiAssistant, true));
+    t('#7 defaultAiAssistant=general', () => assert.strictEqual(cfg.defaultAiAssistant, 'general'));
   }
 
   console.log('\n==============================');
