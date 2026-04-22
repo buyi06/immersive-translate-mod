@@ -170,3 +170,25 @@ DeepL、Google Translate Web/PA、Microsoft Edge Translator、Azure Cognitive Tr
 3. 翻译**敏感/内部文档**时，强烈建议选择**本地模型（Ollama / LM Studio）**或**自带 API Key 的付费厂商**，而不是默认的“免费模型”（会经过 `aigw1.immersivetranslate.com`）。
 4. 定期通过 Chrome 的 `chrome://extensions`「查看详细信息 → 网站访问」把 `<all_urls>` 改成「点击时」以缩减被动注入面。
 5. 若担心 DeepL/腾讯/火山 Origin 伪造的合规风险，可在设置里**改用自己的 API Key 方式**调用对应厂商的官方 API，这条链路会自动走正规 Origin，DNR 规则就不再适用。
+
+## Turn 9 — 清除三处限制 UI补丁
+
+针对 options.js 中残留的付费 / 合规 UI 闸门，一次性结构性移除：
+
+1. **使用须知 合规弹窗 `wL(e)`**
+   - 原要求用户手动输入 `我已知晓并同意` 后才可添加第三方 API。
+   - 补丁后：`visible===true` 时立即调用 `onConfirm()` 并返回 `null`，弹窗不再渲染。
+
+2. **视频字幕 AI 智能分句 `subtitle.ytAIAsr`**
+   - 原包裹容器 `hidden:Zt(t,e.isPro)` + 开关 `disabled:!...preTranslation||!e.isPro`。
+   - 补丁后：`hidden:!1`，开关仅受父级 `preTranslation` 控制，提示文不再走升级文案。
+
+3. **添加自定义翻译服务 picker `BX(e)`**
+   - 原过滤器依赖 `ny({serviceKey,ctx})` 逐项校验用户配置/alpha/beta，导致 Custom AI / OpenAI / Claude / Gemini / DeepSeek / Groq / SiliconCloud / Ollama 全被隐藏。
+   - 补丁后：仅保留 `Dn[s].allProps.length && !['zhipu-pro','qwen'].includes(s)` 判定，所有 BYOK 服务正常出现。
+
+### 新增补丁脚本
+- `scripts/patches/fix_ui_gates.py`（可重入执行，幂等）
+
+### 测试集
+- 新增 Section 12 / 7 条断言，当前 **95/95 全部通过**。

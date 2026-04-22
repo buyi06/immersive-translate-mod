@@ -117,3 +117,10 @@
 11. manifest 完整性
 
 最新一次运行：`88 passed, 0 failed, exit 0`。
+
+## [mod-1.28.3+3] - 2026-04-22
+### Removed
+- 使用须知合规弹窗（options.js 中 `wL` 组件存桩，自动 confirm）
+### Fixed / Unlocked
+- YouTube AI 智能分句 `subtitle.ytAIAsr` 默认可见且可开关（解除 Zt + isPro 闸门）
+- “添加自定义翻译服务” Picker 完整呈现 Custom AI / OpenAI / Claude / Gemini / DeepSeek / Groq / SiliconCloud / Ollama（移除 ny 用户级过滤）

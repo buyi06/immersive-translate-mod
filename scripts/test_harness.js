@@ -277,6 +277,21 @@ vm.runInContext(v2src, sb);
   t('manifest has no "key" (re-signed on load)', () => assert.ok(!('key' in mf)));
   t('manifest still has name', () => assert.ok(mf.name));
 
+  section('12. options.js UI gate removals (Turn 9)');
+  {
+    const opt = fs.readFileSync(path.join(__dirname, '..', 'patched', 'options.js'), 'utf8');
+    // 1. compliance popup wL stubbed
+    t('wL compliance stub present', () => assert.ok(opt.includes('function wL(e){var _r=e&&e.onConfirm;if(e&&e.visible')));
+    t('wL original consent body gone (services.consent.requiredText removed)', () => assert.ok(!opt.includes('services.consent.requiredText')));
+    // 2. ytAIAsr gate rewritten
+    t('ytAIAsr wrapper hidden:!1 applied', () => assert.ok(opt.includes('hidden:!1,children:[u(Ee,{title:r("subtitle.ytAIAsr")')));
+    t('ytAIAsr original Zt(t,e.isPro) gate removed', () => assert.ok(!opt.includes('hidden:Zt(t,e.isPro),children:[u(Ee,{title:r("subtitle.ytAIAsr")')));
+    t('ytAIAsr disabled gate stripped of !e.isPro', () => assert.ok(opt.includes('disableTipText:r("subtitle.ytAsrDisableTooltip"),disabled:!t.generalRule.subtitleRule.preTranslation,onChange:')));
+    // 3. BX add-custom-service filter: no more ny() gate
+    t('BX new filter (without ny gate) present', () => assert.ok(opt.includes('.filter(s=>!(!Dn[s].allProps?.length||["zhipu-pro","qwen"].includes(s)))')));
+    t('BX old ny({serviceKey:s,ctx:e.ctx}) filter removed', () => assert.ok(!opt.includes('ny({serviceKey:s,ctx:e.ctx})')));
+  }
+
   console.log('\n==============================');
   console.log(`  \x1b[32m${passed} passed\x1b[0m   ${failed ? '\x1b[31m'+failed+' failed\x1b[0m' : '0 failed'}`);
   console.log('==============================');
