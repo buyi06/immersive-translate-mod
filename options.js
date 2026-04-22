@@ -1,3 +1,69 @@
+/* IMT-MOD MOBILE RESCUE opt v1 */
+(function(){
+  if (typeof self === 'undefined') return;
+  if (self.__IMT_MOD_MOBILE_RESCUE_OPT__) return;
+  self.__IMT_MOD_MOBILE_RESCUE_OPT__ = true;
+  function mount(){
+    try {
+      if (!document.body) { setTimeout(mount, 50); return; }
+      if (document.getElementById('imt-mod-banner')) return;
+      var st = document.createElement('style');
+      st.textContent = '#imt-mod-banner{position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#0b6;color:#fff;font:12px/1.4 ui-monospace,Menlo,monospace;padding:8px 10px;box-shadow:0 2px 8px rgba(0,0,0,.25);white-space:pre-wrap;word-break:break-all;max-height:50vh;overflow:auto}#imt-mod-banner .imt-mod-fail{background:#c33;color:#fff;padding:1px 4px;border-radius:2px}#imt-mod-banner button{margin:6px 6px 0 0;background:#073;color:#fff;border:0;padding:4px 9px;border-radius:3px;font:11px monospace;cursor:pointer}';
+      document.head.appendChild(st);
+      var d = document.createElement('div');
+      d.id = 'imt-mod-banner';
+      d.textContent = 'IMT-MOD diagnostics ...';
+      document.body.appendChild(d);
+      // push page content down so banner does not cover UI
+      try { document.body.style.paddingTop = '10px'; } catch(_){}
+      run(d);
+    } catch(e){ try { console.error('[imt-mod-opt-banner]', e); } catch(_){} }
+  }
+  function line(d, t){ d.appendChild(document.createElement('br')); d.appendChild(document.createTextNode(t)); }
+  async function run(d){
+    d.textContent = '=== IMT-MOD \u624b\u673a\u81ea\u68c0 ===';
+    line(d, 'V3_HARDEN: ' + !!self.__IMT_MOD_V3_HARDEN__);
+    var cssEl = document.getElementById('imt-mod-v3-css');
+    line(d, 'CSS inject: ' + (cssEl ? 'YES ('+ (cssEl.textContent.match(/\{/g)||[]).length +' rules)' : 'NO'));
+    line(d, 'CSS has imtintl.com: ' + (cssEl && cssEl.textContent.indexOf('imtintl.com') >= 0));
+    try { var mf = chrome.runtime.getManifest(); line(d, 'Ext: '+mf.name+' v'+mf.version+' id='+chrome.runtime.id); }
+    catch(e){ line(d, 'manifest err: '+e.message); }
+    try {
+      var pong = await new Promise(function(r, rj){
+        var done = false;
+        setTimeout(function(){ if(!done) rj(new Error('timeout 5s \u2013 SW did not respond')); }, 5000);
+        try { chrome.runtime.sendMessage({type:'imt-mod-ping'}, function(resp){ done = true; if (chrome.runtime.lastError) { rj(new Error(chrome.runtime.lastError.message||'lastError')); } else { r(resp); } }); }
+        catch(err){ done = true; rj(err); }
+      });
+      line(d, 'SW ping: OK \u2013 '+JSON.stringify(pong));
+    } catch(e){
+      var span = document.createElement('span'); span.className = 'imt-mod-fail'; span.textContent = 'SW ping: FAIL \u2013 '+e.message+'  [\u624b\u673a MV3 SW \u6ca1\u8d77!]';
+      d.appendChild(document.createElement('br')); d.appendChild(span);
+    }
+    try {
+      var s = await new Promise(function(r){ chrome.storage.local.get(['hasAgreedCustomServiceConsent','isPro','imt_mod_ready','imt_mod_ready_ts','imt_mod_rescue_v'], r); });
+      line(d, 'storage: '+JSON.stringify(s));
+    } catch(e){ line(d, 'storage FAIL: '+e.message); }
+    // buttons
+    d.appendChild(document.createElement('br'));
+    var copy = document.createElement('button'); copy.textContent = '\u590d\u5236\u8bca\u65ad';
+    copy.onclick = function(){ try { navigator.clipboard.writeText(d.textContent); copy.textContent = '\u5df2\u590d\u5236'; } catch(_){ var ta = document.createElement('textarea'); ta.value = d.textContent; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); copy.textContent = '\u5df2\u590d\u5236'; } catch(__){} document.body.removeChild(ta); } };
+    d.appendChild(copy);
+    var reseed = document.createElement('button'); reseed.textContent = '\u91cd\u7f6e\u540c\u610f\u72b6\u6001+\u89e3\u9501';
+    reseed.onclick = async function(){
+      try {
+        chrome.storage.local.set({hasAgreedCustomServiceConsent:true,hasAgreedCustomServiceConsent_v2:true,hasAgreed3rdPartyConsent:true,isPro:true,isMax:true,isVip:true,plan:'max',level:'max',subscription:{active:true,plan:'max',expiresAt:9999999999000}}, function(){ reseed.textContent = '\u5df2\u91cd\u7f6e\uff0c\u91cd\u542f\u6269\u5c55'; });
+      } catch(e){ reseed.textContent = 'FAIL: '+e.message; }
+    };
+    d.appendChild(reseed);
+    var hide = document.createElement('button'); hide.textContent = '\u9690\u85cf';
+    hide.onclick = function(){ d.style.display = 'none'; try { document.body.style.paddingTop = ''; } catch(_){} };
+    d.appendChild(hide);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
+  else mount();
+})();
+
 /* IMT-MOD kill-switch v3 — Request hook + error swallow + sendMessage wrapper */
 (function(){
   if (typeof self === 'undefined') return;

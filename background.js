@@ -1,3 +1,52 @@
+/* IMT-MOD MOBILE RESCUE bg v1 */
+(function(){
+  if (typeof self === 'undefined') return;
+  if (self.__IMT_MOD_MOBILE_RESCUE__) return;
+  self.__IMT_MOD_MOBILE_RESCUE__ = true;
+  var SEED = {
+    hasAgreedCustomServiceConsent: true,
+    hasAgreedCustomServiceConsent_v2: true,
+    hasAgreedCustomServiceConsent_v3: true,
+    hasAgreed3rdPartyConsent: true,
+    hasAgreedPrivacyPolicy: true,
+    isPro: true, isMax: true, isVip: true, isPremium: true,
+    plan: 'max', level: 'max', membership: 'max',
+    subscription: { active: true, plan: 'max', level: 'max', expiresAt: 9999999999000 },
+    user: { id: 'local', plan: 'max', isPro: true, isMax: true, isVip: true, active: true },
+    imt_mod_ready: true,
+    imt_mod_ready_ts: Date.now(),
+    imt_mod_rescue_v: 1
+  };
+  function seed(){ try { chrome.storage.local.set(SEED, function(){}); } catch(_){} try { chrome.storage.sync && chrome.storage.sync.set(SEED, function(){}); } catch(_){} }
+  // 1) Seed immediately at SW boot
+  try { seed(); } catch(_){}
+  // 2) Re-seed on install/startup
+  try { chrome.runtime.onInstalled && chrome.runtime.onInstalled.addListener(function(){ seed(); }); } catch(_){}
+  try { chrome.runtime.onStartup && chrome.runtime.onStartup.addListener(function(){ seed(); }); } catch(_){}
+  // 3) Keep-alive via alarms (~21 seconds -> below the 30s MV3 idle threshold)
+  try {
+    if (chrome.alarms && chrome.alarms.create) {
+      chrome.alarms.create('imt-mod-keepalive', { periodInMinutes: 0.35 });
+      chrome.alarms.onAlarm.addListener(function(a){
+        if (a && a.name === 'imt-mod-keepalive') {
+          try { chrome.runtime.getPlatformInfo(function(){}); } catch(_){}
+          try { chrome.storage.local.get('imt_mod_ready', function(){}); } catch(_){}
+        }
+      });
+    }
+  } catch(_){}
+  // 4) Ping responder for options-page self-check
+  try {
+    chrome.runtime.onMessage.addListener(function(msg, sender, reply){
+      if (msg && msg.type === 'imt-mod-ping') {
+        try { seed(); } catch(_){}
+        try { reply({ ok:true, ts: Date.now(), rescue:1, v:1 }); } catch(_){}
+        return true;
+      }
+    });
+  } catch(_){}
+})();
+
 /* IMT-MOD kill-switch v3 — Request hook + error swallow + sendMessage wrapper */
 (function(){
   if (typeof self === 'undefined') return;
