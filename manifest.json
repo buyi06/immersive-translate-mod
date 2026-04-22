@@ -147,6 +147,11 @@
         "id": "ruleset_1",
         "enabled": true,
         "path": "request_modifier_rule.json"
+      },
+      {
+        "id": "ruleset_imt_block",
+        "enabled": true,
+        "path": "rules_imt_block.json"
       }
     ]
   },
