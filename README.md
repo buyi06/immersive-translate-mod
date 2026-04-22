@@ -25,6 +25,31 @@
 
 ## 安装
 
+> **最省事**：用下面"方式三"直接下载打包好的 zip；想跟进 commit 就用方式一（clone）。
+
+### 方式三：直接下载预构建 zip（推荐，适合只想用不想折腾的人）
+
+仓库根目录已经放了一份**打包好的、manifest.json 在 zip 根**的压缩包：
+
+- 直链：<https://github.com/buyi06/immersive-translate-mod/raw/main/immersive-translate-mod-v3.zip>
+- 或在 GitHub 页面上点 `immersive-translate-mod-v3.zip` → `Download raw file`
+
+1. 下载 `immersive-translate-mod-v3.zip` 到本地（**不要**用 `s.immersivetranslate.com/releases/chrome-immersive-translate-1_28_3.zip` — 那是原版未修改）。
+2. 解压到一个稳定目录（文件夹里直接能看到 `manifest.json` 就对了）。
+3. 打开 `chrome://extensions/` → 右上角开"**开发者模式**"。
+4. 如果之前装过 Immersive Translate（不管官方版还是旧 Mod），**点"移除"**，再把 Chrome 完全退出后重开。
+5. 点"**加载已解压的扩展程序**"，选刚解压出的那个根目录。
+
+**装完 3 秒自检**（打开扩展的 Options 页 → F12 → Console 粘贴）：
+
+```js
+document.getElementById('imt-mod-v3-css')?.textContent?.includes('imtintl.com')
+// true  → 装对了，Mod 生效
+// false / undefined → 装的还是原版或旧 Mod
+```
+
+每次我推新修复后这个 zip 也会同步更新；文件名不变，重新下载替换即可。
+
 ### 方式一：直接 clone 后加载
 
 ```bash
