@@ -1,3 +1,34 @@
+/* IMT-MOD error swallower — suppress benign runtime TypeErrors from content_main.js */
+(function(){
+  if (typeof self === 'undefined') return;
+  if (self.__IMT_MOD_ERR_SWALLOW__) return;
+  self.__IMT_MOD_ERR_SWALLOW__ = true;
+  try {
+    self.addEventListener('error', function(ev){
+      try {
+        var msg = (ev && ev.message) || '';
+        var src = (ev && ev.filename) || '';
+        if (src && src.indexOf('content_main.js') !== -1 &&
+            /Cannot read propert(y|ies) of undefined \(reading ['"]length['"]\)/.test(msg)) {
+          ev.preventDefault();
+          ev.stopImmediatePropagation();
+          return false;
+        }
+      } catch (_) {}
+    }, true);
+    self.addEventListener('unhandledrejection', function(ev){
+      try {
+        var r = ev && ev.reason;
+        var msg = (r && (r.message || String(r))) || '';
+        var stack = (r && r.stack) || '';
+        if (/content_main\.js/.test(stack) &&
+            /Cannot read propert(y|ies) of undefined \(reading ['"]length['"]\)/.test(msg)) {
+          ev.preventDefault();
+        }
+      } catch (_) {}
+    });
+  } catch (_) {}
+})();
 /* IMT-MOD kill-switch core v2 — block telemetry + forge "Pro forever" user info */
 /* IMT-MOD kill-switch core v2 — block telemetry + forge "Pro forever" user info */
 (function(){
