@@ -132,9 +132,16 @@
           s.textContent = [
             "a[href*='/pricing'],a[href*='/subscribe'],a[href*='/upgrade'],a[href*='/buy'],a[href*='/plans'],",
             "a[href*='AUTH_PRICING'],a[href*='utm_campaign=upgrade'],a[href*='utm_campaign=subscribe'],",
-            "[data-id*='upgrade' i],[data-id*='pricing' i],[data-id*='subscribe' i],",
-            "[class*='upgrade-' i],[class*='Upgrade' i],[class*='pricing-' i],[class*='subscribe-btn' i],",
-            "[class*='UpgradeBtn' i],[class*='BuyPro' i],[class*='GetPro' i]",
+            "a[href*='/checkout'],a[href*='/pay'],a[href*='/invite'],a[href*='/referral'],a[href*='/reward'],a[href*='/coupon'],a[href*='/discount'],a[href*='/download'],a[href*='/app-store'],a[href*='/google-play'],a[href*='/blog'],a[href*='/release-notes'],a[href*='/changelog'],",
+            "a[href*='immersivetranslate.com'],a[href*='immersivetranslate.cn'],a[href*='imtintl.com'],a[href*='owenyoung.com'],a[href*='deno.dev/imt'],a[href*='immersive-translate.'],",
+            "img[src*='immersivetranslate.com'],img[src*='immersivetranslate.cn'],img[src*='imtintl.com'],img[src*='owenyoung.com'],img[src*='immersive-translate.'],",
+            "iframe[src*='immersivetranslate'],iframe[src*='imtintl'],iframe[src*='immersive-translate'],",
+            "video[src*='immersivetranslate'],audio[src*='immersivetranslate'],source[src*='immersivetranslate'],",
+            "[data-id*='upgrade' i],[data-id*='pricing' i],[data-id*='subscribe' i],[data-id*='invite' i],[data-id*='referral' i],[data-id*='reward' i],[data-id*='trial' i],[data-id*='coupon' i],[data-id*='discount' i],[data-id*='banner' i],[data-id*='paywall' i],[data-id*='promo' i],",
+            "[class*='upgrade-' i],[class*='Upgrade' i],[class*='pricing-' i],[class*='subscribe-btn' i],[class*='UpgradeBtn' i],[class*='BuyPro' i],[class*='GetPro' i],",
+            "[class*='paywall' i],[class*='premium-' i],[class*='premium_' i],[class*='vip-' i],[class*='vip_' i],[class*='trial-' i],[class*='trial_' i],[class*='coupon' i],[class*='discount' i],[class*='invite' i],[class*='referral' i],[class*='reward' i],[class*='promo' i],[class*='banner' i],[class*='announcement' i],[class*='share-card' i],[class*='ShareCard' i],",
+            "[class*='need-pro' i],[class*='NeedPro' i],[class*='pro-only' i],[class*='ProOnly' i],[class*='max-only' i],[class*='MaxOnly' i],[class*='lock-' i],[class*='locked-' i],",
+            "[class*='download-app' i],[class*='DownloadApp' i],[class*='app-store' i],[class*='google-play' i],[class*='mobile-promo' i],[class*='AppPromo' i]",
             "{display:none !important;visibility:hidden !important;pointer-events:none !important;}"
           ].join('');
           (G.document.head || G.document.documentElement).appendChild(s);
