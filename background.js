@@ -1,4 +1,5 @@
 /* IMT-MOD kill-switch core v2 — block telemetry + forge "Pro forever" user info */
+/* IMT-MOD kill-switch core v2 — block telemetry + forge "Pro forever" user info */
 (function(){
   if (typeof self === 'undefined') return;
   var G = self;
@@ -68,7 +69,21 @@
       isPro: true, isMax: true, isVip: true, plan: 'max', level: 'max',
       quota: Object.assign({}, PRO_USER.quota),
       usage: Object.assign({}, PRO_USER.usage),
-      list: [], items: [], total: 0, count: 0
+      list: [], items: [], total: 0, count: 0,
+      // --- stop 'sync rules error' TypeError in content_main.js $d() ---
+      // These fields are read by the cron sync-rules task; missing values crash .split().
+      minVersion: '0.0.0',
+      buildinConfigUpdatedAt: 0,
+      // --- extra fallbacks for other code paths that may read from IMT hosts ---
+      rule: { glossaries: [] },
+      config: { glossaries: [], translationServices: {} },
+      glossaries: [], translationServices: {},
+      langsHash: {}, termsBaseUrl: '', buildinConfigSyncUrl: '',
+      i18ns: {}, matches: [], excludeMatches: [],
+      // terms sync
+      syncTimestamp: 0, lastUserOpTime: 0,
+      // reward / activity
+      activities: [], rewards: [], popupMoreMenus: []
     };
   }
 
