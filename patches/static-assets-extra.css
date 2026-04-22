@@ -1,0 +1,80 @@
+/*
+ * IMT-MOD static-assets extra blacklist
+ * -------------------------------------
+ * Supplementary CSS selectors to hide first-party static assets (banners,
+ * illustrations, marketing images, onboarding graphics) that survived the
+ * Turn 25 CSS pass. These selectors target asset hosts/paths and common
+ * wrapper classes that the app uses for hero images and decorative art.
+ *
+ * Applied by patches/inject-extra-css.py, which appends this block inside the
+ * existing `imt-mod-v3-css` <style> injection in every bundle.
+ *
+ * IMPORTANT: selectors must be conservative enough to not break the custom
+ * AI / custom translation service configuration forms. Do NOT blanket-hide
+ * <img> or <iframe> globally.
+ */
+
+/* Host-based image sources */
+img[src*="immersivetranslate.com"],
+img[src*="immersive-translate."],
+img[src*="imtintl.com"],
+img[src*="s.immersivetranslate."],
+img[src*="s2.immersivetranslate."],
+img[src*="cdn.immersivetranslate."],
+img[src*="assets.immersivetranslate."],
+/* Path-based image sources (when served from extension package or CDN) */
+img[src*="/assets/hero"],
+img[src*="/assets/banner"],
+img[src*="/assets/illustration"],
+img[src*="/assets/marketing"],
+img[src*="/assets/onboarding"],
+img[src*="/assets/promo"],
+img[src*="/assets/subscribe"],
+img[src*="/assets/pro"],
+img[src*="/assets/vip"],
+img[src*="/illustrations/"],
+img[src*="/banners/"],
+img[src*="/onboarding/"],
+/* Iframe embeds pointing at IMT first-party domains */
+iframe[src*="immersivetranslate.com"],
+iframe[src*="immersive-translate."],
+iframe[src*="imtintl.com"],
+/* Video / audio pulled from IMT domains */
+video[src*="immersivetranslate."],
+video source[src*="immersivetranslate."],
+audio[src*="immersivetranslate."],
+/* Inline background-images referencing IMT hosts (attribute selectors on style) */
+[style*="immersivetranslate.com"],
+[style*="imtintl.com"],
+[style*="s.immersivetranslate."],
+/* Common marketing wrappers by class */
+.hero-banner,
+.hero-image,
+.marketing-banner,
+.promo-banner,
+.subscribe-banner,
+.upgrade-banner,
+.pro-banner,
+.vip-banner,
+.onboarding-illustration,
+.onboarding-hero,
+.illustration-wrapper,
+.static-asset,
+[class*="hero_"],
+[class*="banner_"],
+[class*="illustration_"],
+[class*="marketing_"],
+[class*="onboarding_"],
+[class*="promo_"],
+[class*="subscribe_"],
+[class*="upgrade_"]
+{
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  max-width: 0 !important;
+  max-height: 0 !important;
+}

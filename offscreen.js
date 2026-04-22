@@ -127,15 +127,7 @@
   // ---------- 3. Hook fetch ----------
   var origFetch = G.fetch && G.fetch.bind(G);
   if (origFetch){
-    G.fetch = function(input, init){
-      try {
-        var url = (input && input.url) ? input.url : input;
-        var cls = classify(url);
-        if (cls === 'telemetry') return Promise.resolve(jsonResponse({}, 204));
-        if (cls === 'imt')       return Promise.resolve(jsonResponse(envelope(), 200));
-      } catch(_){}
-      return origFetch(input, init);
-    };
+    G.fetch = function(input, init){ return origFetch(input, init); };
   }
 
   // ---------- 4. Hook XHR ----------
@@ -144,35 +136,8 @@
     if (XHR && XHR.prototype){
       var origOpen = XHR.prototype.open;
       var origSend = XHR.prototype.send;
-      XHR.prototype.open = function(method, url){
-        this.__imtUrl = url;
-        this.__imtCls = classify(url);
-        return origOpen.apply(this, arguments);
-      };
-      XHR.prototype.send = function(){
-        var self_ = this;
-        if (this.__imtCls === 'telemetry' || this.__imtCls === 'imt'){
-          var body = this.__imtCls === 'imt' ? JSON.stringify(envelope()) : '{}';
-          var status = this.__imtCls === 'imt' ? 200 : 204;
-          setTimeout(function(){
-            try {
-              Object.defineProperty(self_, 'readyState', {value:4, configurable:true});
-              Object.defineProperty(self_, 'status',     {value:status, configurable:true});
-              Object.defineProperty(self_, 'statusText', {value:'OK', configurable:true});
-              Object.defineProperty(self_, 'responseURL',{value:String(self_.__imtUrl||''), configurable:true});
-              Object.defineProperty(self_, 'response',     {value:body, configurable:true});
-              Object.defineProperty(self_, 'responseText', {value:body, configurable:true});
-              if (typeof self_.onreadystatechange === 'function') self_.onreadystatechange();
-              if (typeof self_.onload === 'function') self_.onload();
-              self_.dispatchEvent && self_.dispatchEvent(new Event('readystatechange'));
-              self_.dispatchEvent && self_.dispatchEvent(new Event('load'));
-              self_.dispatchEvent && self_.dispatchEvent(new Event('loadend'));
-            } catch(_){}
-          }, 0);
-          return;
-        }
-        return origSend.apply(this, arguments);
-      };
+      XHR.prototype.open = function(){ return origOpen.apply(this, arguments); };
+      XHR.prototype.send = function(){ return origSend.apply(this, arguments); };
     }
   } catch(_){}
 
