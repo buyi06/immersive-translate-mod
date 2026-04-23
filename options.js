@@ -53,9 +53,58 @@
         cfg.updatedAt = new Date().toISOString();
         cfg.localUpdatedAt = cfg.updatedAt;
         cfg.modifiedBySystem = true;
+        // v5: clean up broken custom-ai-* entries (missing apiUrl/apiKey)
+        var removed=[];
+        for (var bk in svcs){ if (bk!==id && /^custom-ai-/.test(bk)){ var bv=svcs[bk]||{}; if(!(bv.apiUrl&&bv.apiKey&&bv.model)){ delete svcs[bk]; removed.push(bk); } } }
+        cfg.translationServices = svcs;
+        // v5: also maintain customAiAssistants so IMT UI #ai tab shows an entry and translation path sees it
+        var assistants = Array.isArray(cfg.customAiAssistants) ? cfg.customAiAssistants.slice() : [];
+        var assistId = 'custom-' + id.replace(/^custom-ai-/,'');
+        var existingAssistIdx = -1;
+        for (var ai=0; ai<assistants.length; ai++){ if(assistants[ai] && (assistants[ai].id===assistId || assistants[ai].id===id)){ existingAssistIdx=ai; break; } }
+        var assistEntry = {
+          id: assistId,
+          name: name,
+          avatar: '',
+          priority: 0,
+          custom: true,
+          description: '',
+          version: '1.0.0',
+          extensionVersion: '1.4.10',
+          details: '',
+          author: '',
+          homepage: '',
+          props: [],
+          matches: [],
+          env: {},
+          systemPrompt: '',
+          prompt: '',
+          multipleSystemPrompt: '',
+          multiplePrompt: '',
+          subtitlePrompt: '',
+          langOverrides: [],
+          heat: 0,
+          i18n: {},
+          maxTextGroupLengthPerRequest: 4,
+          maxTextLengthPerRequest: 1200,
+          translationServiceId: id
+        };
+        if (existingAssistIdx>=0) assistants[existingAssistIdx]=assistEntry; else assistants.push(assistEntry);
+        cfg.customAiAssistants = assistants;
         var sets = { fullLocalUserConfig: cfg, translationService: id };
         chrome.storage.local.set(sets, function(){
-          try{var le=chrome.runtime.lastError; if(le) alert('\u5199\u5165\u5931\u8D25: '+le.message); else alert((newInstance?'\u65B0\u5EFA':'\u4FEE\u590D')+' \u6210\u529F\uFF01\ninstance = '+id+'\napiUrl = '+apiUrl.slice(0,50)+'\nmodel = '+model+'\n\n\u8BF7\u5237\u65B0 Options \u9875\u5E76\u8BD5\u7FFB\u8BD1');}catch(_){}
+          try{var le=chrome.runtime.lastError;
+            if(le){ alert('\u5199\u5165\u5931\u8D25: '+le.message); return; }
+            var msg=(newInstance?'\u65B0\u5EFA':'\u4FEE\u590D')+' \u6210\u529F\uFF01\n'
+              +'service = '+id+'\n'
+              +'assistant = '+assistId+'\n'
+              +'apiUrl = '+apiUrl.slice(0,50)+'\n'
+              +'model = '+model+'\n'
+              +(removed.length?('\n\u5DF2\u6E05\u7406\u7834\u635F\u6761\u76EE: '+removed.join(', ')+'\n'):'')
+              +'\n\u9875\u9762\u5C06\u5728 1.5s \u540E\u81EA\u52A8\u5237\u65B0\u4EE5\u52A0\u8F7D\u65B0\u914D\u7F6E';
+            alert(msg);
+            setTimeout(function(){ try{ location.reload(); }catch(_){} }, 1500);
+          }catch(_){}
         });
       }catch(e){ alert('\u51FA\u9519: '+((e&&e.message)||e)); }
     });
@@ -76,13 +125,13 @@
 
   function mount(){ try{ if(!document.body){ setTimeout(mount,500); return; } if(document.getElementById('imt-mod-banner')) return;
     var box=document.createElement('div'); box.id='imt-mod-banner'; box.style.cssText='position:fixed;left:0;right:0;top:0;z-index:2147483647;background:#093;color:#fff;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:10px;max-height:70vh;overflow:auto;white-space:pre-wrap;word-break:break-all;box-shadow:0 2px 8px rgba(0,0,0,.35)';
-    var title=document.createElement('div'); title.textContent='=== IMT-MOD \u624B\u673A\u8C03\u8BD5 v4 ==='; title.style.cssText='font-weight:bold;margin-bottom:6px'; box.appendChild(title);
+    var title=document.createElement('div'); title.textContent='=== IMT-MOD \u624B\u673A\u8C03\u8BD5 v5 ==='; title.style.cssText='font-weight:bold;margin-bottom:6px'; box.appendChild(title);
     var info=document.createElement('pre'); info.id='imt-mod-banner-info'; info.style.cssText='margin:0 0 6px 0;color:#dfd;white-space:pre-wrap;word-break:break-all'; box.appendChild(info);
     var row=document.createElement('div'); row.style.cssText='display:flex;flex-wrap:wrap;gap:4px;margin-top:6px'; box.appendChild(row);
 
     row.appendChild(mkBtn('\U0001F527 \u4FEE\u590D/\u6DFB\u52A0 AI (\u63A8\u8350)', fixOrAddCustomAI, 'padding:14px 18px;background:#f60;color:#fff;border:0;border-radius:4px;font:bold 14px sans-serif;cursor:pointer;margin:4px 4px 0 0'));
     row.appendChild(mkBtn('\U0001F4CB \u67E5\u770B AI \u5B9E\u4F8B', listCustomAIInstances));
-    var dumpBtn = mkBtn('\U0001F4CB \u4E00\u952E\u5168\u91CF\u8C03\u8BD5\u590D\u5236', function(){ var b=this; b.textContent='\u6536\u96C6\u4E2D...'; collect().then(function(resp){ var report={ v:'imt-mod-opt-dump-v4', ts:new Date().toISOString(), page_url:location.href, ua:navigator.userAgent, opt_fetch_errors:errLog.slice(-40), sw_response:resp }; var text=''; try{ text=JSON.stringify(report,null,2); }catch(e){ text='JSON fail: '+((e&&e.message)||e); } info.textContent=text.slice(0,4000)+(text.length>4000?('\n...['+text.length+' chars total, \u5168\u6587\u5DF2\u590D\u5236]'):''); copyText(text,b,'\u2713 \u5DF2\u590D\u5236','\U0001F4CB \u4E00\u952E\u5168\u91CF\u8C03\u8BD5\u590D\u5236'); }); }, 'padding:10px 14px;background:#06b;color:#fff;border:0;border-radius:4px;font:13px sans-serif;cursor:pointer;margin:4px 4px 0 0');
+    var dumpBtn = mkBtn('\U0001F4CB \u4E00\u952E\u5168\u91CF\u8C03\u8BD5\u590D\u5236', function(){ var b=this; b.textContent='\u6536\u96C6\u4E2D...'; collect().then(function(resp){ var report={ v:'imt-mod-opt-dump-v5', ts:new Date().toISOString(), page_url:location.href, ua:navigator.userAgent, opt_fetch_errors:errLog.slice(-40), sw_response:resp }; var text=''; try{ text=JSON.stringify(report,null,2); }catch(e){ text='JSON fail: '+((e&&e.message)||e); } info.textContent=text.slice(0,4000)+(text.length>4000?('\n...['+text.length+' chars total, \u5168\u6587\u5DF2\u590D\u5236]'):''); copyText(text,b,'\u2713 \u5DF2\u590D\u5236','\U0001F4CB \u4E00\u952E\u5168\u91CF\u8C03\u8BD5\u590D\u5236'); }); }, 'padding:10px 14px;background:#06b;color:#fff;border:0;border-radius:4px;font:13px sans-serif;cursor:pointer;margin:4px 4px 0 0');
     row.appendChild(dumpBtn);
     row.appendChild(mkBtn('\u2715 \u9690\u85CF', function(){ box.style.display='none'; }));
 
