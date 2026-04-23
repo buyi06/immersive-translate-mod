@@ -43,6 +43,8 @@
           name: name,
           apiUrl: apiUrl,
           apiKey: apiKey,
+          APIKEY: apiKey,   // v7: IMT custom-ai ctor reads uppercase
+          authKey: apiKey,  // v7: DeepL-variant ctor fallback
           model: model,
           assistantId: 'common',
           enabled: true,
@@ -56,6 +58,9 @@
         // v5: clean up broken custom-ai-* entries (missing apiUrl/apiKey)
         var removed=[];
         for (var bk in svcs){ if (bk!==id && /^custom-ai-/.test(bk)){ var bv=svcs[bk]||{}; if(!(bv.apiUrl&&bv.apiKey&&bv.model)){ delete svcs[bk]; removed.push(bk); } } }
+        // v7: migrate field name — IMT custom-ai ctor reads a.APIKEY (uppercase).
+        var migrated=[];
+        for (var mk in svcs){ var mv=svcs[mk]; if (mv && /^custom-ai/.test(mv.type||mk)) { var changed=false; if (mv.apiKey && !mv.APIKEY){ mv.APIKEY=mv.apiKey; changed=true; } if (mv.apiKey && !mv.authKey){ mv.authKey=mv.apiKey; changed=true; } if (mv.APIKEY && !mv.apiKey){ mv.apiKey=mv.APIKEY; changed=true; } if (changed) migrated.push(mk); } }
         cfg.translationServices = svcs;
         // v5: also maintain customAiAssistants so IMT UI #ai tab shows an entry and translation path sees it
         var assistants = Array.isArray(cfg.customAiAssistants) ? cfg.customAiAssistants.slice() : [];
@@ -125,13 +130,13 @@
 
   function mount(){ try{ if(!document.body){ setTimeout(mount,500); return; } if(document.getElementById('imt-mod-banner')) return;
     var box=document.createElement('div'); box.id='imt-mod-banner'; box.style.cssText='position:fixed;left:0;right:0;top:0;z-index:2147483647;background:#093;color:#fff;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:10px;max-height:70vh;overflow:auto;white-space:pre-wrap;word-break:break-all;box-shadow:0 2px 8px rgba(0,0,0,.35)';
-    var title=document.createElement('div'); title.textContent='=== IMT-MOD \u624B\u673A\u8C03\u8BD5 v5 ==='; title.style.cssText='font-weight:bold;margin-bottom:6px'; box.appendChild(title);
+    var title=document.createElement('div'); title.textContent='=== IMT-MOD \u624B\u673A\u8C03\u8BD5 v7 ==='; title.style.cssText='font-weight:bold;margin-bottom:6px'; box.appendChild(title);
     var info=document.createElement('pre'); info.id='imt-mod-banner-info'; info.style.cssText='margin:0 0 6px 0;color:#dfd;white-space:pre-wrap;word-break:break-all'; box.appendChild(info);
     var row=document.createElement('div'); row.style.cssText='display:flex;flex-wrap:wrap;gap:4px;margin-top:6px'; box.appendChild(row);
 
     row.appendChild(mkBtn('\U0001F527 \u4FEE\u590D/\u6DFB\u52A0 AI (\u63A8\u8350)', fixOrAddCustomAI, 'padding:14px 18px;background:#f60;color:#fff;border:0;border-radius:4px;font:bold 14px sans-serif;cursor:pointer;margin:4px 4px 0 0'));
     row.appendChild(mkBtn('\U0001F4CB \u67E5\u770B AI \u5B9E\u4F8B', listCustomAIInstances));
-    var dumpBtn = mkBtn('\U0001F4CB \u4E00\u952E\u5168\u91CF\u8C03\u8BD5\u590D\u5236', function(){ var b=this; b.textContent='\u6536\u96C6\u4E2D...'; collect().then(function(resp){ var report={ v:'imt-mod-opt-dump-v5', ts:new Date().toISOString(), page_url:location.href, ua:navigator.userAgent, opt_fetch_errors:errLog.slice(-40), sw_response:resp }; var text=''; try{ text=JSON.stringify(report,null,2); }catch(e){ text='JSON fail: '+((e&&e.message)||e); } info.textContent=text.slice(0,4000)+(text.length>4000?('\n...['+text.length+' chars total, \u5168\u6587\u5DF2\u590D\u5236]'):''); copyText(text,b,'\u2713 \u5DF2\u590D\u5236','\U0001F4CB \u4E00\u952E\u5168\u91CF\u8C03\u8BD5\u590D\u5236'); }); }, 'padding:10px 14px;background:#06b;color:#fff;border:0;border-radius:4px;font:13px sans-serif;cursor:pointer;margin:4px 4px 0 0');
+    var dumpBtn = mkBtn('\U0001F4CB \u4E00\u952E\u5168\u91CF\u8C03\u8BD5\u590D\u5236', function(){ var b=this; b.textContent='\u6536\u96C6\u4E2D...'; collect().then(function(resp){ var report={ v:'imt-mod-opt-dump-v7', ts:new Date().toISOString(), page_url:location.href, ua:navigator.userAgent, opt_fetch_errors:errLog.slice(-40), sw_response:resp }; var text=''; try{ text=JSON.stringify(report,null,2); }catch(e){ text='JSON fail: '+((e&&e.message)||e); } info.textContent=text.slice(0,4000)+(text.length>4000?('\n...['+text.length+' chars total, \u5168\u6587\u5DF2\u590D\u5236]'):''); copyText(text,b,'\u2713 \u5DF2\u590D\u5236','\U0001F4CB \u4E00\u952E\u5168\u91CF\u8C03\u8BD5\u590D\u5236'); }); }, 'padding:10px 14px;background:#06b;color:#fff;border:0;border-radius:4px;font:13px sans-serif;cursor:pointer;margin:4px 4px 0 0');
     row.appendChild(dumpBtn);
     row.appendChild(mkBtn('\u2715 \u9690\u85CF', function(){ box.style.display='none'; }));
 
