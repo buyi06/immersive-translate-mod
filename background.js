@@ -1,51 +1,42 @@
-/* IMT-MOD MOBILE RESCUE bg v1 */
+/* IMT-MOD MOBILE RESCUE bg v3 */
 (function(){
   if (typeof self === 'undefined') return;
-  if (self.__IMT_MOD_MOBILE_RESCUE__) return;
-  self.__IMT_MOD_MOBILE_RESCUE__ = true;
-  var SEED = {
-    hasAgreedCustomServiceConsent: true,
-    hasAgreedCustomServiceConsent_v2: true,
-    hasAgreedCustomServiceConsent_v3: true,
-    hasAgreed3rdPartyConsent: true,
-    hasAgreedPrivacyPolicy: true,
-    isPro: true, isMax: true, isVip: true, isPremium: true,
-    plan: 'max', level: 'max', membership: 'max',
-    subscription: { active: true, plan: 'max', level: 'max', expiresAt: 9999999999000 },
-    user: { id: 'local', plan: 'max', isPro: true, isMax: true, isVip: true, active: true },
-    imt_mod_ready: true,
-    imt_mod_ready_ts: Date.now(),
-    imt_mod_rescue_v: 1
-  };
-  function seed(){ try { chrome.storage.local.set(SEED, function(){}); } catch(_){} try { chrome.storage.sync && chrome.storage.sync.set(SEED, function(){}); } catch(_){} }
-  // 1) Seed immediately at SW boot
-  try { seed(); } catch(_){}
-  // 2) Re-seed on install/startup
-  try { chrome.runtime.onInstalled && chrome.runtime.onInstalled.addListener(function(){ seed(); }); } catch(_){}
-  try { chrome.runtime.onStartup && chrome.runtime.onStartup.addListener(function(){ seed(); }); } catch(_){}
-  // 3) Keep-alive via alarms (~21 seconds -> below the 30s MV3 idle threshold)
-  try {
-    if (chrome.alarms && chrome.alarms.create) {
-      chrome.alarms.create('imt-mod-keepalive', { periodInMinutes: 0.35 });
-      chrome.alarms.onAlarm.addListener(function(a){
-        if (a && a.name === 'imt-mod-keepalive') {
-          try { chrome.runtime.getPlatformInfo(function(){}); } catch(_){}
-          try { chrome.storage.local.get('imt_mod_ready', function(){}); } catch(_){}
-        }
-      });
+  if (self.__IMT_MOD_MOBILE_RESCUE_BG_V3__) return;
+  self.__IMT_MOD_MOBILE_RESCUE_BG_V3__ = true;
+  var MAX=500, logs=[];
+  function push(src,evt,ex){ try{ logs.push({t:Date.now(),src:src,evt:String(evt).slice(0,80),ex:ex}); if(logs.length>MAX) logs.splice(0,logs.length-MAX); }catch(_){} }
+  self.__imt_mod_log_push = push;
+  push('bg','boot',{v:3, ua:(self.navigator&&self.navigator.userAgent)||'?'});
+  var SEED={hasAgreedCustomServiceConsent:true,hasAgreedCustomServiceConsent_v2:true,hasAgreedCustomServiceConsent_v3:true,hasAgreed3rdPartyConsent:true,hasAgreedPrivacyPolicy:true,isPro:true,isMax:true,isVip:true,isPremium:true,plan:'max',level:'max',membership:'max',subscription:{active:true,plan:'max',level:'max',expiresAt:9999999999000},user:{id:'local',plan:'max',isPro:true,isMax:true,isVip:true,active:true},imt_mod_ready:true,imt_mod_ready_ts:Date.now(),imt_mod_rescue_v:3};
+  function seed(){ try{chrome.storage.local.set(SEED,function(){});}catch(_){} try{chrome.storage.sync&&chrome.storage.sync.set(SEED,function(){});}catch(_){} }
+  try{seed();}catch(_){}
+  try{chrome.runtime.onInstalled&&chrome.runtime.onInstalled.addListener(function(){push('bg','onInstalled',null);seed();});}catch(_){}
+  try{chrome.runtime.onStartup&&chrome.runtime.onStartup.addListener(function(){push('bg','onStartup',null);seed();});}catch(_){}
+  try{ if(chrome.alarms&&chrome.alarms.create){ chrome.alarms.create('imt-mod-keepalive',{periodInMinutes:0.35}); chrome.alarms.onAlarm.addListener(function(a){ if(a&&a.name==='imt-mod-keepalive'){ try{chrome.runtime.getPlatformInfo(function(){});}catch(_){}} });} }catch(_){}
+  try{ var _f=self.fetch; self.fetch=function(){ var t0=Date.now(); var r=arguments[0]; var u=(typeof r==='string')?r:((r&&r.url)||'?'); var short=String(u).slice(0,180); return _f.apply(this,arguments).then(function(resp){ push('bg-fetch', resp.status, {u:short, ms:Date.now()-t0}); return resp; }).catch(function(e){ push('bg-fetch','THROW',{u:short, err:(e&&e.message)||String(e), ms:Date.now()-t0}); throw e; }); }; }catch(_){}
+  try{ self.addEventListener('unhandledrejection',function(e){ push('bg','unhandledrejection',{msg:((e.reason&&(e.reason.message||String(e.reason)))||'?').slice(0,200)}); }); self.addEventListener('error',function(e){ push('bg','error',{msg:(e.message||'?').slice(0,200), f:(e.filename||'?')+':'+e.lineno}); }); }catch(_){}
+  try{ chrome.storage.onChanged.addListener(function(changes,area){ var ks=Object.keys(changes||{}).slice(0,6); push('bg','storage.onChanged',{area:area,keys:ks}); }); }catch(_){}
+  try{ chrome.runtime.onMessage.addListener(function(msg,sender,reply){
+    if(!msg||typeof msg!=='object') return;
+    if(msg.type==='imt-mod-ping'){ push('bg','ping',{from:(sender&&sender.url)?sender.url.slice(0,80):'?'}); try{seed();}catch(_){} try{reply({ok:true,ts:Date.now(),rescue:3,v:3,logs:logs.length});}catch(_){} return true; }
+    if(msg.type==='imt-mod-log-push'){ push('cs', msg.evt||'?', msg.ex||null); try{reply({ok:true});}catch(_){} return true; }
+    if(msg.type==='imt-mod-collect'){
+      (async function(){
+        try{
+          var all=await new Promise(function(r){chrome.storage.local.get(null,r);});
+          var totalKeys=Object.keys(all).length;
+          var relevant={};
+          for(var k in all){ var kl=k.toLowerCase(); if(kl.indexOf('custom')>=0||kl.indexOf('translation')>=0||kl.indexOf('service')>=0||kl.indexOf('ai')>=0||kl.indexOf('pro')>=0||kl.indexOf('consent')>=0||kl.indexOf('plan')>=0||kl.indexOf('user')>=0||kl.indexOf('subscr')>=0||kl.indexOf('engine')>=0||kl.indexOf('api')>=0||kl.indexOf('key')>=0||kl.indexOf('imt_mod')>=0){ var s=''; try{s=typeof all[k]==='string'?all[k]:JSON.stringify(all[k]);}catch(_){s='[unserializable]';} if(s.length>600) s=s.slice(0,600)+'...['+s.length+'B]'; relevant[k]=s; } }
+          var mf=chrome.runtime.getManifest();
+          var dump={ v:'imt-mod-bg-dump-v3', ts:new Date().toISOString(), ext:{id:chrome.runtime.id,name:mf.name,ver:mf.version}, storage_total_keys:totalKeys, storage_relevant:relevant, logs_count:logs.length, logs:logs.slice(-250) };
+          reply({ok:true, dump:dump});
+        }catch(e){ try{reply({ok:false, err:(e&&e.message)||String(e)});}catch(_){} }
+      })();
+      return true;
     }
-  } catch(_){}
-  // 4) Ping responder for options-page self-check
-  try {
-    chrome.runtime.onMessage.addListener(function(msg, sender, reply){
-      if (msg && msg.type === 'imt-mod-ping') {
-        try { seed(); } catch(_){}
-        try { reply({ ok:true, ts: Date.now(), rescue:1, v:1 }); } catch(_){}
-        return true;
-      }
-    });
-  } catch(_){}
+  }); }catch(_){}
 })();
+
 
 /* IMT-MOD kill-switch v3 — Request hook + error swallow + sendMessage wrapper */
 (function(){

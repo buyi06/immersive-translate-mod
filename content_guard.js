@@ -1,3 +1,38 @@
+/* IMT-MOD MOBILE RESCUE cg v3 */
+(function(){
+  if (typeof window==='undefined') return;
+  if (window.__IMT_MOD_MOBILE_RESCUE_CG_V3__) return;
+  window.__IMT_MOD_MOBILE_RESCUE_CG_V3__=true;
+  try{ if(window.top!==window) return; }catch(_){ return; }
+  try{ if(!/^https?:|^file:/.test(location.href)) return; }catch(_){ return; }
+  var csLogs=[];
+  function log(evt,ex){ try{ csLogs.push({t:Date.now(),evt:String(evt).slice(0,80),ex:ex}); if(csLogs.length>200) csLogs.splice(0,csLogs.length-200); }catch(_){} try{ chrome.runtime.sendMessage({type:'imt-mod-log-push',evt:evt,ex:ex},function(){ try{var _=chrome.runtime.lastError;}catch(__){} }); }catch(_){} }
+  log('cs-boot',{url:location.href.slice(0,120)});
+  try{ var _f=window.fetch; window.fetch=function(){ var t0=Date.now(); var u=arguments[0]; if(u&&u.url) u=u.url; var s=String(u).slice(0,160); return _f.apply(this,arguments).then(function(r){ if(!r.ok) log('cs-fetch-bad',{u:s,s:r.status,ms:Date.now()-t0}); return r; }).catch(function(e){ log('cs-fetch-err',{u:s,msg:(e&&e.message)||String(e),ms:Date.now()-t0}); throw e; }); }; }catch(_){}
+  try{ var _xo=XMLHttpRequest.prototype.open, _xs=XMLHttpRequest.prototype.send; XMLHttpRequest.prototype.open=function(m,u){ try{ this.__imt_u=String(u).slice(0,160); this.__imt_m=m; }catch(_){} return _xo.apply(this,arguments); }; XMLHttpRequest.prototype.send=function(){ var self_=this; var t0=Date.now(); try{ this.addEventListener('loadend',function(){ try{ if(self_.status<200||self_.status>=400) log('cs-xhr-bad',{u:self_.__imt_u,m:self_.__imt_m,s:self_.status,ms:Date.now()-t0}); }catch(_){} }); }catch(_){} return _xs.apply(this,arguments); }; }catch(_){}
+  try{ var _ce=console.error; console.error=function(){ try{ var a=[].slice.call(arguments).map(function(x){ try{ return (x&&x.stack)?x.stack.slice(0,180):(typeof x==='string'?x.slice(0,180):JSON.stringify(x).slice(0,180)); }catch(_){return '?';} }).join(' '); log('cs-console.error',a.slice(0,400)); }catch(_){} return _ce.apply(console,arguments); }; }catch(_){}
+  try{ window.addEventListener('error',function(e){ log('cs-error',{msg:(e.message||'?').slice(0,200),f:(e.filename||'?')+':'+e.lineno}); }); window.addEventListener('unhandledrejection',function(e){ log('cs-unhandledrejection',{msg:((e.reason&&(e.reason.message||String(e.reason)))||'?').slice(0,200)}); }); }catch(_){}
+  function mkBtn(label,cb){ var b=document.createElement('button'); b.textContent=label; b.style.cssText='padding:10px 14px;background:#0b6;color:#fff;border:0;border-radius:4px;font:13px sans-serif;cursor:pointer;margin-left:6px'; b.onclick=cb; return b; }
+  function mount(){ try{ if(!document.body){ setTimeout(mount,600); return; } if(document.getElementById('imt-mod-diag-btn')) return; var btn=document.createElement('button'); btn.id='imt-mod-diag-btn'; btn.textContent='\U0001F50D'; btn.style.cssText='position:fixed;right:8px;bottom:80px;z-index:2147483647;width:44px;height:44px;border-radius:50%;background:#0b6;color:#fff;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);font-size:20px;cursor:pointer;line-height:40px;padding:0;text-align:center'; btn.title='IMT-MOD diagnostics'; btn.onclick=openOverlay; (document.body||document.documentElement).appendChild(btn); }catch(_){} }
+  async function openOverlay(){ try{
+    var ex=document.getElementById('imt-mod-diag-overlay'); if(ex){ ex.remove(); return; }
+    var ov=document.createElement('div'); ov.id='imt-mod-diag-overlay'; ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:2147483647;color:#0f0;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;padding:12px 12px 70px 12px;overflow:auto;white-space:pre-wrap;word-break:break-all'; document.documentElement.appendChild(ov);
+    ov.textContent='=== IMT-MOD \u8BCA\u65AD\u6536\u96C6\u4E2D... ===\n';
+    var dump=null, swErr=null;
+    try{ dump=await new Promise(function(res,rej){ var d=false; setTimeout(function(){ if(!d) rej(new Error('SW collect timeout 8s')); },8000); try{ chrome.runtime.sendMessage({type:'imt-mod-collect'},function(resp){ d=true; try{var le=chrome.runtime.lastError; if(le) return rej(new Error(le.message||'lastError'));}catch(_){} res(resp); }); }catch(e){ d=true; rej(e); } }); }catch(e){ swErr=(e&&e.message)||String(e); }
+    var report={ v:'imt-mod-full-dump-v3', ts:new Date().toISOString(), page:{url:location.href,title:(document.title||'').slice(0,120),ua:navigator.userAgent}, ext_id:(chrome.runtime&&chrome.runtime.id)||'?', cs_logs_count:csLogs.length, cs_logs_tail:csLogs.slice(-80), sw_response:dump||null, sw_error:swErr };
+    var text=''; try{ text=JSON.stringify(report,null,2); }catch(e){ text='JSON fail: '+((e&&e.message)||e); }
+    ov.textContent=''; var pre=document.createElement('pre'); pre.style.cssText='white-space:pre-wrap;word-break:break-all;color:#0f0;margin:0'; pre.textContent=text; ov.appendChild(pre);
+    var bar=document.createElement('div'); bar.style.cssText='position:fixed;right:8px;bottom:8px;display:flex;gap:6px;z-index:2147483647';
+    bar.appendChild(mkBtn('\U0001F4CB \u590D\u5236\u5168\u90E8',function(){ var b=this; function ok(){ b.textContent='\u2713 \u5DF2\u590D\u5236'; setTimeout(function(){b.textContent='\U0001F4CB \u590D\u5236\u5168\u90E8';},2000); } try{ navigator.clipboard.writeText(text).then(ok,function(){fb();}); }catch(_){ fb(); } function fb(){ try{ var ta=document.createElement('textarea'); ta.value=text; ta.style.cssText='position:fixed;left:-9999px;top:-9999px'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); ok(); }catch(e){ b.textContent='\u590D\u5236\u5931\u8D25:'+((e&&e.message)||e).slice(0,20); } } }));
+    bar.appendChild(mkBtn('\U0001F504 \u5237\u65B0',function(){ ov.remove(); openOverlay(); }));
+    bar.appendChild(mkBtn('\u2715 \u5173\u95ED',function(){ ov.remove(); }));
+    ov.appendChild(bar);
+  }catch(e){ try{ var ov2=document.getElementById('imt-mod-diag-overlay'); if(ov2) ov2.textContent='FATAL: '+((e&&e.message)||e); }catch(__){} } }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',mount); else mount();
+  setInterval(mount,4000);
+})();
+
 /* IMT-MOD error swallower — suppress benign runtime TypeErrors from content_main.js */
 (function(){
   if (typeof self === 'undefined') return;

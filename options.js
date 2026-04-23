@@ -1,165 +1,41 @@
-/* IMT-MOD MOBILE RESCUE opt v2 */
+/* IMT-MOD MOBILE RESCUE opt v3 */
 (function(){
-  if (typeof self === 'undefined') return;
-  if (self.__IMT_MOD_MOBILE_RESCUE_OPT_V2__) return;
-  self.__IMT_MOD_MOBILE_RESCUE_OPT_V2__ = true;
-  // ---------- 0. Force-inject V3 harden CSS (does not depend on other code paths) ----------
-  function forceCSS(){
-    try {
-      if (document.getElementById('imt-mod-v3-css')) return;
-      var css = [
-        '[href*="imtintl.com"],[src*="imtintl.com"],[data-src*="imtintl.com"]{display:none!important}',
-        'a[href*="immersivetranslate.com"],iframe[src*="immersivetranslate.com"],img[src*="imtintl.com"]{display:none!important}',
-        '[class*="invite"],[class*="referral"],[class*="reward"],[class*="trial"],[class*="coupon"],[class*="discount"]{display:none!important}',
-        '[class*="promo"],[class*="banner"],[class*="announcement"],[class*="share-card"]{display:none!important}',
-        '[class*="need-pro"],[class*="pro-only"],[class*="max-only"],[class*="lock"]{display:none!important}',
-        '[class*="download-app"],[class*="app-store"],[class*="google-play"],[class*="mobile-promo"]{display:none!important}',
-        '[class*="upgrade"],[class*="subscribe"],[class*="vip"],[class*="premium"]{display:none!important}'
-      ].join('\n');
-      var s = document.createElement('style');
-      s.id = 'imt-mod-v3-css';
-      s.textContent = css;
-      (document.head || document.documentElement).appendChild(s);
-    } catch(_){}
-  }
-  forceCSS();
-  var cssTimer = setInterval(forceCSS, 1000);
-  setTimeout(function(){ clearInterval(cssTimer); }, 15000);
-  // ---------- 1. Hook fetch to log translation errors ----------
-  var errLog = [];
-  try {
-    var _f = self.fetch;
-    self.fetch = function(){
-      var url = arguments[0]; if (url && url.url) url = url.url;
-      return _f.apply(this, arguments).then(function(resp){
-        if (!resp.ok && url && String(url).length < 300) errLog.push(resp.status+' '+url);
-        return resp;
-      }).catch(function(e){
-        if (url && String(url).length < 300) errLog.push('THROW '+e.message+' '+url);
-        throw e;
-      });
-    };
-  } catch(_){}
-  // ---------- 2. Banner ----------
-  function mount(){
-    try {
-      if (!document.body) { setTimeout(mount, 50); return; }
-      if (document.getElementById('imt-mod-banner')) return;
-      var st = document.createElement('style');
-      st.textContent = '#imt-mod-banner{position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#0b6;color:#fff;font:12px/1.4 ui-monospace,Menlo,monospace;padding:8px 10px;box-shadow:0 2px 8px rgba(0,0,0,.25);white-space:pre-wrap;word-break:break-all;max-height:60vh;overflow:auto}#imt-mod-banner .imt-mod-fail{background:#c33;color:#fff;padding:1px 4px;border-radius:2px}#imt-mod-banner button{margin:6px 6px 0 0;background:#073;color:#fff;border:0;padding:6px 10px;border-radius:3px;font:11px monospace;cursor:pointer}#imt-mod-banner pre{background:rgba(0,0,0,.3);padding:4px;margin:4px 0;font-size:11px;white-space:pre-wrap;max-height:30vh;overflow:auto}';
-      document.head.appendChild(st);
-      var d = document.createElement('div');
-      d.id = 'imt-mod-banner';
-      d.textContent = '=== IMT-MOD \u624b\u673a\u81ea\u68c0 v2 ===';
-      document.body.appendChild(d);
-      try { document.body.style.paddingTop = '10px'; } catch(_){}
-      run(d);
-    } catch(e){ try { console.error('[imt-mod-opt-banner]', e); } catch(_){} }
-  }
-  function line(d, t){ d.appendChild(document.createElement('br')); d.appendChild(document.createTextNode(t)); }
-  function addOutput(d, title, obj){
-    var h = document.createElement('div'); h.textContent = '--- '+title+' ---'; d.appendChild(h);
-    var pre = document.createElement('pre'); pre.textContent = (typeof obj === 'string') ? obj : JSON.stringify(obj, null, 2);
-    d.appendChild(pre);
-  }
-  async function run(d){
-    d.textContent = '=== IMT-MOD \u624b\u673a\u81ea\u68c0 v2 ===';
-    line(d, 'V3_HARDEN: ' + !!self.__IMT_MOD_V3_HARDEN__);
-    var cssEl = document.getElementById('imt-mod-v3-css');
-    line(d, 'CSS inject (force): ' + (cssEl ? 'YES ('+(cssEl.textContent.match(/\{/g)||[]).length+' rules)' : 'NO'));
-    try { var mf = chrome.runtime.getManifest(); line(d, 'Ext: '+mf.name+' v'+mf.version+' id='+chrome.runtime.id); }
-    catch(e){ line(d, 'manifest err: '+e.message); }
-    try {
-      var pong = await new Promise(function(r, rj){
-        var done = false;
-        setTimeout(function(){ if(!done) rj(new Error('timeout 5s')); }, 5000);
-        try { chrome.runtime.sendMessage({type:'imt-mod-ping'}, function(resp){ done = true; if (chrome.runtime.lastError) { rj(new Error(chrome.runtime.lastError.message||'lastError')); } else { r(resp); } }); }
-        catch(err){ done = true; rj(err); }
-      });
-      line(d, 'SW ping: OK '+JSON.stringify(pong));
-    } catch(e){
-      var span = document.createElement('span'); span.className = 'imt-mod-fail'; span.textContent = 'SW ping: FAIL - '+e.message;
-      d.appendChild(document.createElement('br')); d.appendChild(span);
-    }
-    try {
-      var s = await new Promise(function(r){ chrome.storage.local.get(['hasAgreedCustomServiceConsent','isPro','imt_mod_ready_ts','imt_mod_rescue_v'], r); });
-      line(d, 'storage: '+JSON.stringify(s));
-    } catch(e){ line(d, 'storage FAIL: '+e.message); }
-    // Buttons area
-    d.appendChild(document.createElement('br'));
-    d.appendChild(document.createElement('br'));
-    var mkBtn = function(label, handler){ var b = document.createElement('button'); b.textContent = label; b.onclick = handler; d.appendChild(b); return b; };
-    mkBtn('\u590d\u5236\u8bca\u65ad', function(){
-      try { navigator.clipboard.writeText(d.textContent); this.textContent = '\u5df2\u590d\u5236'; }
-      catch(_){ var ta = document.createElement('textarea'); ta.value = d.textContent; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); this.textContent='\u5df2\u590d\u5236'; } catch(__){} document.body.removeChild(ta); }
-    });
-    mkBtn('\u5217\u51fa\u7ffb\u8bd1\u670d\u52a1', async function(){
-      try {
-        var all = await new Promise(function(r){ chrome.storage.local.get(null, r); });
-        var result = {};
-        var keys = Object.keys(all).filter(function(k){
-          var kl = k.toLowerCase();
-          return kl.indexOf('custom') >= 0 || kl.indexOf('translation') >= 0 || kl.indexOf('service') >= 0 || kl.indexOf('translator') >= 0 || kl.indexOf('engine') >= 0 || kl.indexOf('ai') >= 0;
-        }).slice(0, 50);
-        keys.forEach(function(k){
-          var v = all[k];
-          result[k] = (typeof v === 'string' && v.length > 300) ? v.slice(0,300)+'...' : v;
-        });
-        result['__total_keys_in_storage__'] = Object.keys(all).length;
-        addOutput(d, '\u7ffb\u8bd1\u670d\u52a1\u76f8\u5173 storage \u952e', result);
-      } catch(e){ addOutput(d, '\u5217\u51fa\u5931\u8d25', e.message); }
-    });
-    mkBtn('\u6ce8\u5165\u6d4b\u8bd5 Custom AI', async function(){
-      try {
-        var url = prompt('API URL (\u5982 https://api.openai.com/v1/chat/completions):');
-        if (!url) return;
-        var key = prompt('API Key:');
-        if (!key) return;
-        var model = prompt('Model \u540d (\u5982 gpt-4o-mini \u6216 deepseek-chat):');
-        if (!model) return;
-        var name = prompt('\u5c55\u793a\u540d (\u968f\u4fbf\u5199):', 'MyCustomAI');
-        if (!name) return;
-        // Standard Custom AI config shape used by IMT
-        var cfg = {
-          url: url,
-          apiKey: key,
-          model: model,
-          name: name,
-          enabled: true,
-          type: 'openai-custom',
-          prompt: 'Please translate into to:\n\ntext',
-          maxTextLengthPerRequest: 1000
-        };
-        // Try multiple known storage keys where IMT saves custom services
-        var payload = {
-          'custom-ai': cfg,
-          'openai-custom': cfg,
-          'userConfig.translationServices.custom-ai': cfg,
-          'translationService': 'custom-ai',
-          'translationServices.custom-ai.enabled': true
-        };
-        await new Promise(function(r){ chrome.storage.local.set(payload, r); });
-        // Also read back and list the current full translationServices object if it exists
-        var all = await new Promise(function(r){ chrome.storage.local.get(null, r); });
-        addOutput(d, '\u5df2\u5199\u5165 storage\uff0c\u8bf7\u5237\u65b0 Options \u9875\u67e5\u770b\u662f\u5426\u51fa\u73b0\u5728\u7ffb\u8bd1\u670d\u52a1\u5217\u8868\u4e2d', {
-          wrote: payload,
-          current_related_keys: Object.keys(all).filter(function(k){ return k.toLowerCase().indexOf('custom') >= 0 || k.toLowerCase().indexOf('ai') >= 0; }).slice(0, 30)
-        });
-      } catch(e){ addOutput(d, '\u6ce8\u5165\u5931\u8d25', e.message); }
-    });
-    mkBtn('\u67e5\u770b\u7ffb\u8bd1\u9519\u8bef', function(){
-      addOutput(d, 'fetch \u9519\u8bef\u65e5\u5fd7 (\u6700\u8fd1 30 \u6761)', errLog.slice(-30).length ? errLog.slice(-30) : '[\u7a7a - \u6682\u65e0 fetch \u5931\u8d25]');
-    });
-    mkBtn('\u91cd\u7f6e\u540c\u610f+\u89e3\u9501', function(){
-      try {
-        chrome.storage.local.set({hasAgreedCustomServiceConsent:true,hasAgreedCustomServiceConsent_v2:true,hasAgreed3rdPartyConsent:true,isPro:true,isMax:true,isVip:true,plan:'max',level:'max',subscription:{active:true,plan:'max',expiresAt:9999999999000}}, function(){ this.textContent = '\u5df2\u91cd\u7f6e'; }.bind(this));
-      } catch(e){ this.textContent = 'FAIL: '+e.message; }
-    });
-    mkBtn('\u9690\u85cf', function(){ d.style.display = 'none'; try { document.body.style.paddingTop = ''; } catch(_){} });
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
-  else mount();
+  if (typeof window==='undefined') return;
+  if (window.__IMT_MOD_MOBILE_RESCUE_OPT_V3__) return;
+  window.__IMT_MOD_MOBILE_RESCUE_OPT_V3__=true;
+  function mkBtn(label,cb){ var b=document.createElement('button'); b.textContent=label; b.style.cssText='padding:10px 14px;background:#0b6;color:#fff;border:0;border-radius:4px;font:13px sans-serif;cursor:pointer;margin:4px 4px 0 0'; b.onclick=cb; return b; }
+  function forceCSS(){ try{ if(document.getElementById('imt-mod-v3-css')) return; var s=document.createElement('style'); s.id='imt-mod-v3-css'; s.textContent=[
+    'a[href*="imtintl.com"],img[src*="imtintl.com"],iframe[src*="imtintl.com"],[data-src*="imtintl.com"]{display:none!important}',
+    'a[href*="immersivetranslate.com"],iframe[src*="immersivetranslate.com"],img[src*="immersivetranslate.com"]{display:none!important}',
+    '[class*="invite" i],[class*="referral" i],[class*="reward" i],[class*="trial" i],[class*="coupon" i],[class*="discount" i]{display:none!important}',
+    '[class*="promo" i],[class*="banner" i],[class*="announcement" i],[class*="share-card" i]{display:none!important}',
+    '[class*="need-pro" i],[class*="pro-only" i],[class*="max-only" i],[class*="lock" i]{display:none!important}',
+    '[class*="download-app" i],[class*="app-store" i],[class*="google-play" i],[class*="mobile-promo" i]{display:none!important}',
+    '[class*="upgrade" i],[class*="subscribe" i],[class*="vip" i],[class*="premium" i]{display:none!important}'
+  ].join('\n'); (document.head||document.documentElement).appendChild(s); }catch(_){} }
+  var n=0; var css=setInterval(function(){ forceCSS(); if(++n>=15) clearInterval(css); },1000);
+  var errLog=[];
+  try{ var _f=window.fetch; window.fetch=function(){ var t0=Date.now(); var u=arguments[0]; if(u&&u.url) u=u.url; var s=String(u).slice(0,200); return _f.apply(this,arguments).then(function(r){ if(!r.ok){ errLog.push({t:Date.now(),s:r.status,u:s,ms:Date.now()-t0}); if(errLog.length>40) errLog.shift(); } return r; }).catch(function(e){ errLog.push({t:Date.now(),s:'THROW',u:s,err:((e&&e.message)||String(e)).slice(0,200),ms:Date.now()-t0}); if(errLog.length>40) errLog.shift(); throw e; }); }; }catch(_){}
+  function collect(){ return new Promise(function(resolve){ try{ chrome.runtime.sendMessage({type:'imt-mod-collect'},function(resp){ try{var le=chrome.runtime.lastError; if(le) resolve({ok:false,err:le.message||'lastError'}); else resolve(resp||{ok:false,err:'no resp'}); }catch(_){ resolve({ok:false,err:'?'}); } }); }catch(e){ resolve({ok:false,err:(e&&e.message)||String(e)}); } }); }
+  function copyText(text,btn,okLabel,origLabel){ function ok(){ btn.textContent=okLabel; setTimeout(function(){btn.textContent=origLabel;},2500); } try{ navigator.clipboard.writeText(text).then(ok,fb); }catch(_){ fb(); } function fb(){ try{ var ta=document.createElement('textarea'); ta.value=text; ta.style.cssText='position:fixed;left:-9999px;top:-9999px'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); ok(); }catch(e){ btn.textContent='\u5931\u8D25'; } } }
+  function mount(){ try{ if(!document.body){ setTimeout(mount,500); return; } if(document.getElementById('imt-mod-banner')) return;
+    var box=document.createElement('div'); box.id='imt-mod-banner'; box.style.cssText='position:fixed;left:0;right:0;top:0;z-index:2147483647;background:#093;color:#fff;font:13px/1.5 ui-monospace,Menlo,Consolas,monospace;padding:10px;max-height:70vh;overflow:auto;white-space:pre-wrap;word-break:break-all;box-shadow:0 2px 8px rgba(0,0,0,.35)';
+    var title=document.createElement('div'); title.textContent='=== IMT-MOD \u624B\u673A\u8C03\u8BD5 v3 ==='; title.style.cssText='font-weight:bold;margin-bottom:6px'; box.appendChild(title);
+    var info=document.createElement('pre'); info.id='imt-mod-banner-info'; info.style.cssText='margin:0 0 6px 0;color:#dfd;white-space:pre-wrap;word-break:break-all'; box.appendChild(info);
+    var row=document.createElement('div'); row.style.cssText='display:flex;flex-wrap:wrap;gap:4px;margin-top:6px'; box.appendChild(row);
+    var mainBtn=mkBtn('\U0001F4CB \u4E00\u952E\u5168\u91CF\u8C03\u8BD5\u590D\u5236',function(){ var b=this; b.textContent='\u6536\u96C6\u4E2D...'; collect().then(function(resp){ var report={ v:'imt-mod-opt-dump-v3', ts:new Date().toISOString(), page_url:location.href, ua:navigator.userAgent, opt_fetch_errors:errLog.slice(-40), sw_response:resp }; var text=''; try{ text=JSON.stringify(report,null,2); }catch(e){ text='JSON fail: '+((e&&e.message)||e); } info.textContent=text.slice(0,4000)+(text.length>4000?('\n...['+text.length+' chars total, \u5168\u6587\u5DF2\u590D\u5236]'):''); copyText(text,b,'\u2713 \u5DF2\u590D\u5236','\U0001F4CB \u4E00\u952E\u5168\u91CF\u8C03\u8BD5\u590D\u5236'); }); });
+    mainBtn.style.cssText='padding:14px 18px;background:#f60;color:#fff;border:0;border-radius:4px;font:bold 14px sans-serif;cursor:pointer;margin:4px 4px 0 0';
+    row.appendChild(mainBtn);
+    row.appendChild(mkBtn('\U0001F9E9 \u6CE8\u5165\u6D4B\u8BD5 Custom AI',function(){ var u=prompt('API URL (\u4F8B:https://api.deepseek.com/chat/completions):'); if(!u) return; var k=prompt('API Key:'); if(!k) return; var m=prompt('Model (\u4F8B:deepseek-chat):','deepseek-chat'); if(!m) return; var n=prompt('\u5C55\u793A\u540D:','MyCustomAI'); if(!n) return; var cfg={url:u,apiKey:k,model:m,name:n,enabled:true,type:'openai-custom',prompt:'Please translate into 0:\n\nagent://4fad1658-b9b1-8130-8939-00032f09c364/349d1658-b9b1-8009-9318-0092d98e3805',maxTextLengthPerRequest:1000}; var sets={}; sets['custom-ai']=cfg; sets['openai-custom']=cfg; sets['userConfig.translationServices.custom-ai']=cfg; sets['translationService']='custom-ai'; sets['translationServices.custom-ai.enabled']=true; try{ chrome.storage.local.set(sets,function(){ try{var le=chrome.runtime.lastError;}catch(_){} alert('\u5DF2\u5199\u5165 storage\uFF0C\u8BF7\u5237\u65B0 Options \u9875\u67E5\u770B\u670D\u52A1\u5217\u8868'); }); }catch(e){ alert('\u5199\u5165\u5931\u8D25:'+e.message); } }));
+    row.appendChild(mkBtn('\U0001F4CB \u590D\u5236\u7B80\u6613\u8BCA\u65AD',function(){ var b=this; var dump={ V3_HARDEN: !!(window.__IMT_MOD_V3_HARDEN__||self.__IMT_MOD_V3_HARDEN__), CSS_inject: !!document.getElementById('imt-mod-v3-css'), ext: (chrome.runtime.getManifest&&chrome.runtime.getManifest().name)+' v'+chrome.runtime.getManifest().version+' id='+chrome.runtime.id, errors: errLog.slice(-10) }; var t=JSON.stringify(dump,null,2); copyText(t,b,'\u2713','\U0001F4CB \u590D\u5236\u7B80\u6613\u8BCA\u65AD'); }));
+    row.appendChild(mkBtn('\u2715 \u9690\u85CF',function(){ box.style.display='none'; }));
+    document.body.appendChild(box);
+    function refresh(){ try{ var parts=[]; parts.push('V3_HARDEN: '+!!(self.__IMT_MOD_V3_HARDEN__||window.__IMT_MOD_V3_HARDEN__)); parts.push('CSS inject: '+(document.getElementById('imt-mod-v3-css')?'YES':'NO')); try{ var mf=chrome.runtime.getManifest(); parts.push('Ext: '+mf.name+' v'+mf.version+' id='+chrome.runtime.id); }catch(_){} parts.push('Fetch errors: '+errLog.length); info.textContent=parts.join('\n'); }catch(_){} }
+    refresh(); setInterval(refresh,2000);
+  }catch(_){} }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',mount); else mount();
 })();
+
 
 
 /* IMT-MOD kill-switch v3 — Request hook + error swallow + sendMessage wrapper */
