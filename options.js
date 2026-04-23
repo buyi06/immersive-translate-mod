@@ -3,6 +3,21 @@
   if (typeof window==='undefined') return;
   if (window.__IMT_MOD_MOBILE_RESCUE_OPT_V4__) return;
   window.__IMT_MOD_MOBILE_RESCUE_OPT_V4__=true;
+  // v7b: one-shot auto-migration - copy apiKey -> APIKEY/authKey on every custom-ai-* entry
+  try{ chrome.storage.local.get(["fullLocalUserConfig"], function(d){ try{
+    var cfg = d && d.fullLocalUserConfig; if(!cfg) return;
+    var svcs = cfg.translationServices || {}; var changed=0; var ids=[];
+    for (var k in svcs){ var v = svcs[k]; if (!v || typeof v !== "object") continue;
+      var isCustomAi = v.type === "custom-ai" || /^custom-ai/.test(k);
+      if (!isCustomAi) continue;
+      if (v.apiKey && !v.APIKEY){ v.APIKEY = v.apiKey; changed++; ids.push(k); }
+      if (v.apiKey && !v.authKey){ v.authKey = v.apiKey; changed++; }
+      if (v.APIKEY && !v.apiKey){ v.apiKey = v.APIKEY; changed++; ids.push(k); }
+    }
+    if (changed){ cfg.translationServices = svcs; chrome.storage.local.set({fullLocalUserConfig: cfg}, function(){
+      try{ console.log("[imt-mod v7b] auto-migrated custom-ai APIKEY for", ids); }catch(_){}
+    }); }
+  }catch(e){ try{console.error("[imt-mod v7b] migration err", e);}catch(_){} } }); }catch(_){}
   function mkBtn(label,cb,style){ var b=document.createElement('button'); b.textContent=label; b.style.cssText=(style||'padding:10px 14px;background:#0b6;color:#fff;border:0;border-radius:4px;font:13px sans-serif;cursor:pointer;margin:4px 4px 0 0'); b.onclick=cb; return b; }
   function forceCSS(){ try{ if(document.getElementById('imt-mod-v3-css')) return; var s=document.createElement('style'); s.id='imt-mod-v3-css'; s.textContent=[
     'a[href*="imtintl.com"],img[src*="imtintl.com"],iframe[src*="imtintl.com"],[data-src*="imtintl.com"]{display:none!important}',
